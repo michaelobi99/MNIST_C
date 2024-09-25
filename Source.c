@@ -20,6 +20,8 @@
 
 #define TRAIN_IMG_PATH "data/train-images.idx3-ubyte"
 #define TRAIN_LBL_PATH "data/train-labels.idx1-ubyte"
+#define TEST_IMG_PATH "data/t10k-images-idx3-ubyte"
+#define TEST_LBL_PATH "data/t10k-labels-idx1-ubyte"
 
 typedef struct
 {
@@ -153,7 +155,10 @@ int predict(Network* net, float* input)
 }
 
 int __builtin_bswap32(int number) {
-    number = ((number & 0x000000ff) << 24) | ((number & 0x0000ff00) << 8) | ((number & 0x00ff0000) >> 8) | ((number & 0xff000000) >> 24);
+    number = ((number & 0x000000ff) << 24) | 
+              ((number & 0x0000ff00) << 8) | 
+              ((number & 0x00ff0000) >> 8) | 
+              ((number & 0xff000000) >> 24);
     return number;
 }
 
@@ -225,6 +230,7 @@ void shuffle_data(unsigned char* images, unsigned char* labels, int n) {
 int main() {
     Network net;
     InputData data = { 0 };
+    InputData test_data = { 0 };
     int epoch, i, j, k, correct;
     float learning_rate = LEARNING_RATE;
     float img[INPUT_SIZE];
@@ -240,10 +246,13 @@ int main() {
     read_mnist_images(TRAIN_IMG_PATH, &data.images, &data.nImages);
     read_mnist_labels(TRAIN_LBL_PATH, &data.labels, &data.nLabels);
 
+    read_mnist_images(TEST_IMG_PATH, &test_data.images, &test_data.nImages);
+    read_mnist_labels(TEST_LBL_PATH, &test_data.labels, &test_data.nLabels);
+
     shuffle_data(data.images, data.labels, data.nImages);
 
-    int train_size = (int)(data.nImages * TRAIN_SPLIT);
-    int test_size = data.nImages - train_size;
+    int train_size = (int)(data.nImages);
+    int test_size = (int)(test_data.nImages);
 
     for (epoch = 0; epoch < EPOCHS; epoch++)
     {
@@ -265,11 +274,11 @@ int main() {
             }
         }
         correct = 0;
-        for (i = train_size; i < data.nImages; i++)
+        for (i = 0; i < test_data.nImages; i++)
         {
             for (k = 0; k < INPUT_SIZE; k++)
-                img[k] = data.images[i * INPUT_SIZE + k] / 255.0f;
-            if (predict(&net, img) == data.labels[i])
+                img[k] = test_data.images[i * INPUT_SIZE + k] / 255.0f;
+            if (predict(&net, img) == test_data.labels[i])
                 correct++;
         }
         printf("Epoch %d, Accuracy: %.2f%%, Avg Loss: %.4f\n",
